@@ -17,17 +17,27 @@
           05 X-NUMBER OCCURS 100 TIMES.
              10 Y-COLUMNS OCCURS 100 TIMES.
                 15 CASE-NUMBER  PIC 9.
+       
+       01 GAME-VIS-TABLE.
+          05 X-VIS OCCURS 100 TIMES.
+             10 Y-VIS OCCURS 100 TIMES.
+                15 CASE-VIS     PIC 9.
 
        01 X                     PIC 9(2).
        01 XX                    PIC 9(2).
        01 CURR-X                PIC 9(2).
+       01 USER-X                PIC 9(2).
        01 Y                     PIC 9(2).
        01 YY                    PIC 9(2).
        01 CURR-Y                PIC 9(2).
+       01 USER-Y                PIC 9(2).
        01 MAX-X                 PIC 9(2).
        01 MAX-Y                 PIC 9(2).
        01 MINE-COUNTER          PIC 9(3).
+       01 UNVISITED-COUNT       PIC 9(3) VALUE 0.
        01 RAND                  PIC 9(2).
+       01 GAME-VARIABLES.
+          05 GAME-DONE          PIC 9    VALUE 0.
 
        PROCEDURE DIVISION.
            PERFORM GAME-SETTINGS.
@@ -38,28 +48,21 @@
 
            PERFORM CREATE-GAMEBOARD.
 
-      *    PERFORM PRINT-GAMEBOARD.
-
            PERFORM CALCULATE-NUMBERS-SURROUNDING.
 
-           PERFORM PRINT-GAMEBOARD-NUMBER.
+           PERFORM PRINT-GAMEBOARD-NUMBER
+           PERFORM UNTIL GAME-DONE EQUAL 1
+                   PERFORM PRINT-GAME
+                   PERFORM GAME 
+           END-PERFORM
            
            STOP RUN.
-
 
        GAME-SETTINGS.
            DISPLAY "Game Size : ".
            ACCEPT GAME-SIZE.
            DISPLAY "Number of mine : ".
            ACCEPT MINE-NUMBER.
-
-       PRINT-GAMEBOARD.
-           PERFORM VARYING Y FROM 1 BY 1 UNTIL Y > GAME-SIZE 
-                   PERFORM VARYING X FROM 1 BY 1 UNTIL X > GAME-SIZE 
-                           DISPLAY CASE(X, Y) WITH NO ADVANCING 
-                   END-PERFORM
-                   DISPLAY " "
-           END-PERFORM.
 
        PRINT-GAMEBOARD-NUMBER.
            PERFORM VARYING Y FROM 1 BY 1 UNTIL Y > GAME-SIZE 
@@ -75,8 +78,7 @@
            END-PERFORM.
 
        CREATE-GAMEBOARD.
-           PERFORM UNTIL MINE-COUNTER >
-              MINE-NUMBER 
+           PERFORM UNTIL MINE-COUNTER > MINE-NUMBER 
                    COMPUTE RAND = FUNCTION RANDOM * GAME-SIZE 
                    MOVE RAND TO X 
                    COMPUTE RAND = FUNCTION RANDOM * GAME-SIZE 
@@ -114,13 +116,12 @@
                                  MOVE GAME-SIZE TO MAX-Y
                               END-IF
 
-                       *> Vérifier les voisins
                               PERFORM VARYING CURR-Y FROM YY BY 1 UNTIL
                                  CURR-Y > MAX-Y
                                       PERFORM VARYING CURR-X FROM XX BY
                                          1 UNTIL CURR-X > MAX-X
                                               IF NOT (CURR-X = X AND
-                                                 CURR-Y = Y)      *> Ignorer la case elle-même
+                                                 CURR-Y = Y) 
                                                  IF CASE(CURR-X, CURR-Y)
                                                     = "*"
                                                     ADD 1 TO
@@ -130,8 +131,60 @@
                                       END-PERFORM
                               END-PERFORM
 
-                       *> Mettre à jour la case actuelle avec le nombre de mines
                               MOVE MINE-COUNTER TO CASE-NUMBER(X, Y)
                            END-IF
                    END-PERFORM
+           END-PERFORM.
+
+       GAME.
+           DISPLAY "Input X :".
+           ACCEPT USER-X.
+           DISPLAY "Input Y :".
+           ACCEPT USER-Y.
+
+           IF USER-X < 0 OR USER-Y < 0
+              MOVE 1 TO GAME-DONE
+           ELSE 
+              MOVE 1 TO CASE-VIS(USER-X, USER-Y)
+              IF CASE(USER-X, USER-Y) EQUAL "*"
+                 DISPLAY "Game Over"
+                 MOVE 1 TO GAME-DONE
+              END-IF
+              PERFORM CHECK-WIN
+           END-IF.
+
+       CHECK-WIN.
+           MOVE 0 TO UNVISITED-COUNT
+           PERFORM VARYING Y FROM 1 BY 1 UNTIL Y > GAME-SIZE 
+                   PERFORM VARYING X FROM 1 BY 1 UNTIL X > GAME-SIZE
+                           IF CASE-VIS(X, Y) EQUAL 0
+                              ADD 1 TO UNVISITED-COUNT
+                           END-IF
+                   END-PERFORM
+           END-PERFORM
+
+           IF UNVISITED-COUNT EQUAL MINE-NUMBER 
+              DISPLAY "That's a Win"
+              MOVE 1 TO GAME-DONE
+           END-IF.
+
+       PRINT-GAME.
+           PERFORM VARYING Y FROM 1 BY 1 UNTIL Y > GAME-SIZE 
+                   PERFORM VARYING X FROM 1 BY 1 UNTIL X > GAME-SIZE 
+                           IF CASE-VIS(X, Y) EQUAL 1
+                              IF CASE(X, Y) EQUAL "-"
+                                 IF CASE-NUMBER(X, Y) EQUAL 0
+                                    DISPLAY "-" WITH NO ADVANCING
+                                 ELSE
+                                    DISPLAY CASE-NUMBER(X, Y) WITH NO
+                                       ADVANCING 
+                                 END-IF 
+                              ELSE
+                                 DISPLAY "*" WITH NO ADVANCING 
+                              END-IF 
+                           ELSE 
+                              DISPLAY "+" WITH NO ADVANCING 
+                           END-IF
+                   END-PERFORM
+                   DISPLAY " "
            END-PERFORM.
