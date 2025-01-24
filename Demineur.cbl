@@ -36,8 +36,15 @@
        01 MINE-COUNTER          PIC 9(3).
        01 UNVISITED-COUNT       PIC 9(3) VALUE 0.
        01 RAND                  PIC 9(2).
+       01 STACK-EMPTY-STATE     PIC 9    VALUE 0.
        01 GAME-VARIABLES.
           05 GAME-DONE          PIC 9    VALUE 0.
+       
+       01 STACK.
+          05 STACK-ARRAY OCCURS 100 TIMES.
+             10 STACK-X         PIC 99   VALUE 0.
+             10 STACK-Y         PIC 99   VALUE 0.
+          05 STACK-TOP          PIC 99   VALUE 0.
 
        PROCEDURE DIVISION.
            PERFORM GAME-SETTINGS.
@@ -53,7 +60,7 @@
            PERFORM PRINT-GAMEBOARD-NUMBER
            PERFORM UNTIL GAME-DONE EQUAL 1
                    PERFORM PRINT-GAME
-                   PERFORM GAME 
+                   PERFORM GAME
            END-PERFORM
            
            STOP RUN.
@@ -71,6 +78,19 @@
                               DISPLAY "*" WITH NO ADVANCING
                            ELSE
                               DISPLAY CASE-NUMBER(X, Y) WITH NO
+                                 ADVANCING
+                           END-IF 
+                   END-PERFORM
+                   DISPLAY " "
+           END-PERFORM.
+       
+       PRINT-GAMEBOARD-VIS.
+           PERFORM VARYING Y FROM 1 BY 1 UNTIL Y > GAME-SIZE 
+                   PERFORM VARYING X FROM 1 BY 1 UNTIL X > GAME-SIZE 
+                           IF CASE(X, Y) EQUAL "*"
+                              DISPLAY "*" WITH NO ADVANCING
+                           ELSE
+                              DISPLAY CASE-VIS(X, Y) WITH NO
                                  ADVANCING
                            END-IF 
                    END-PERFORM
@@ -150,6 +170,7 @@
                  DISPLAY "Game Over"
                  MOVE 1 TO GAME-DONE
               END-IF
+              PERFORM UNCOVER GAME-SIZE TIMES
               PERFORM CHECK-WIN
            END-IF.
 
@@ -187,4 +208,38 @@
                            END-IF
                    END-PERFORM
                    DISPLAY " "
+           END-PERFORM.   
+
+       UNCOVER.
+           MOVE USER-Y TO Y.
+           PERFORM UNTIL Y > GAME-SIZE
+                   MOVE USER-X TO X 
+                   PERFORM UNTIL X > GAME-SIZE
+                           IF CASE(X, Y) EQUAL '-' THEN
+                              MOVE -1 TO YY
+                              IF Y EQUAL 1
+                                 MOVE 0 TO YY
+                              END-IF
+                              PERFORM UNTIL YY > 1 OR (Y + YY >
+                                 GAME-SIZE)
+                                      MOVE -1 TO XX
+                                      IF X EQUAL 1
+                                         MOVE 0 TO XX
+                                      END-IF
+                                      PERFORM UNTIL XX > 1 OR
+                                         (X + XX > GAME-SIZE)
+                                              IF CASE-NUMBER(X
+                                                 , Y) EQUAL 0
+                                                 MOVE 1 TO CASE-VIS(X+XX 
+                                                 , Y+YY)
+      *                                          DISPLAY "P" X XX Y YY
+                                              END-IF
+                                              ADD 1 TO XX
+                                      END-PERFORM
+                                      ADD 1 TO YY
+                              END-PERFORM
+                           END-IF
+                           ADD 1 TO X
+                   END-PERFORM
+                   ADD 1 TO Y
            END-PERFORM.
